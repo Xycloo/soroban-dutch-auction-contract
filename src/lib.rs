@@ -18,7 +18,6 @@ mod token {
 pub enum DataKey {
     Admin,
     TokenId,
-    ItemId,
     Price,
     MinPrice,
     Timestamp,
@@ -31,10 +30,6 @@ pub enum DataKey {
 pub struct Auth {
     pub sig: Signature,
     pub nonce: BigInt,
-}
-
-fn get_contract_id(e: &Env) -> Identifier {
-    Identifier::Contract(e.get_current_contract())
 }
 
 fn put_minimum_price(e: &Env, price: BigInt) {
@@ -87,16 +82,6 @@ fn get_token_id(e: &Env) -> BytesN<32> {
     e.data().get(key).unwrap().unwrap()
 }
 
-fn put_item_id(e: &Env, token_id: BytesN<32>) {
-    let key = DataKey::ItemId;
-    e.data().set(key, token_id);
-}
-
-fn get_item_id(e: &Env) -> BytesN<32> {
-    let key = DataKey::ItemId;
-    e.data().get(key).unwrap().unwrap()
-}
-
 fn transfer_to_admin(e: &Env, from: &Identifier, amount: BigInt) {
     let client = token::Client::new(e, get_token_id(e));
     let admin_id = read_administrator(e);
@@ -108,12 +93,6 @@ fn transfer_to_admin(e: &Env, from: &Identifier, amount: BigInt) {
         &admin_id,
         &amount,
     )
-}
-
-fn empty_contract(e: &Env, to: Identifier) {
-    let client = token::Client::new(e, get_item_id(e));
-    let amount = client.balance(&get_contract_id(e));
-    client.xfer(&Signature::Invoker, &BigInt::zero(e), &to, &amount)
 }
 
 fn has_administrator(e: &Env) -> bool {
@@ -162,7 +141,6 @@ pub trait AuctionContractTrait {
         e: Env,
         admin: Identifier,
         token_id: BytesN<32>,
-        item_id: BytesN<32>,
         starting_price: BigInt,
         minimum_price: BigInt,
         slope: BigInt,
@@ -172,7 +150,7 @@ pub trait AuctionContractTrait {
     fn nonce(e: Env) -> BigInt;
 
     // user "from" enters the auction at its current price
-    fn buy(e: Env, from: Identifier);
+    fn buy(e: Env, from: Identifier) -> bool;
 
     // fetch the current price of the auction
     fn get_price(e: Env) -> BigInt;
@@ -186,7 +164,6 @@ impl AuctionContractTrait for AuctionContract {
         e: Env,
         admin: Identifier,
         token_id: BytesN<32>,
-        item_id: BytesN<32>,
         starting_price: BigInt,
         minimum_price: BigInt,
         slope: BigInt,
@@ -199,7 +176,6 @@ impl AuctionContractTrait for AuctionContract {
 
         write_administrator(&e, admin);
         put_token_id(&e, token_id);
-        put_item_id(&e, item_id);
         put_starting_price(&e, starting_price);
         put_starting_time(&e, time);
         put_minimum_price(&e, minimum_price);
@@ -210,10 +186,10 @@ impl AuctionContractTrait for AuctionContract {
         read_nonce(&e, &read_administrator(&e))
     }
 
-    fn buy(e: Env, from: Identifier) {
+    fn buy(e: Env, from: Identifier) -> bool {
         let price = compute_price(&e);
         transfer_to_admin(&e, &from, price);
-        empty_contract(&e, from);
+        true
     }
 
     fn get_price(e: Env) -> BigInt {

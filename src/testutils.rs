@@ -31,7 +31,7 @@ impl AuctionContract {
         &self,
         admin: &Identifier,
         token_id: &[u8; 32],
-        item_id: &[u8; 32],
+        //        item_id: &[u8; 32],
         starting_price: BigInt,
         minimum_price: BigInt,
         slope: BigInt,
@@ -39,7 +39,7 @@ impl AuctionContract {
         self.client().initialize(
             admin,
             &BytesN::from_array(&self.env, token_id),
-            &BytesN::from_array(&self.env, item_id),
+            //            &BytesN::from_array(&self.env, item_id),
             &starting_price,
             &minimum_price,
             &slope,
@@ -50,7 +50,7 @@ impl AuctionContract {
         self.client().nonce()
     }
 
-    pub fn buy(&self, from: Identifier) {
+    pub fn buy(&self, from: Identifier) -> bool {
         self.client().buy(&from)
     }
 
